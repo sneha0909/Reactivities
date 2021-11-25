@@ -1,11 +1,9 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 // eslint-disable-next-line
 
 import { Container } from 'semantic-ui-react';
 import NavBar from './NavBar';
 import ActivityDashboard from '../../features/activities/dashboard/ActivityDashboard';
-import LoadingComponent from './LoadingComponent';
-import { useStore } from '../stores/store';
 import { observer } from 'mobx-react-lite';
 import { Route, useLocation } from 'react-router';
 import HomePage from '../../features/activities/home/HomePage';
