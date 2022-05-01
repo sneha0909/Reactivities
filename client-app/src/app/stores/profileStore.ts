@@ -2,7 +2,7 @@ import { isThisQuarter } from "date-fns";
 import { makeAutoObservable, reaction, runInAction } from "mobx";
 import { threadId } from "worker_threads";
 import agent from "../layout/api/agent";
-import { Photo, Profile } from "../layout/models/profile";
+import { Photo, Profile, UserActivity } from "../layout/models/profile";
 import { store } from "./store";
 
 export default class ProfileStore {
@@ -13,6 +13,8 @@ export default class ProfileStore {
     followings: Profile[] = [];
     loadingFollowings = false;
     activeTab = 0;
+    userActivities: UserActivity[] = [];
+    loadingActivities = false;
 
     constructor() {
         makeAutoObservable(this);
@@ -43,13 +45,13 @@ export default class ProfileStore {
 
     loadProfile = async (username: string) => {
         this.loadingProfile = true;
-        try{
-        const profile = await agent.Profiles.get(username);
-        runInAction(() => {
-            this.profile = profile;
-            this.loadingProfile = false;
+        try {
+            const profile = await agent.Profiles.get(username);
+            runInAction(() => {
+                this.profile = profile;
+                this.loadingProfile = false;
 
-        })
+            })
         } catch (error) {
             console.log(error);
             runInAction(() => this.loadingProfile = false);
@@ -72,8 +74,8 @@ export default class ProfileStore {
                 this.uploading = false;
             })
         } catch (error) {
-             console.log(error);
-             runInAction(() => this.uploading = false);
+            console.log(error);
+            runInAction(() => this.uploading = false);
         }
     }
 
@@ -83,7 +85,7 @@ export default class ProfileStore {
             await agent.Profiles.setMainPhotos(photo.id);
             store.userStore.setImage(photo.url);
             runInAction(() => {
-                if (this.profile && this.profile.photos){
+                if (this.profile && this.profile.photos) {
                     this.profile.photos.find(p => p.isMain)!.isMain = false;
                     this.profile.photos.find(p => p.id === photo.id)!.isMain = true;
                     this.profile.image = photo.url;
@@ -98,39 +100,39 @@ export default class ProfileStore {
 
     deletePhoto = async (photo: Photo) => {
         this.loading = true;
-        try{
+        try {
             await agent.Profiles.deletePhoto(photo.id);
-            runInAction (() => {
+            runInAction(() => {
                 if (this.profile) {
                     this.profile.photos = this.profile.photos?.filter(p => p.id !== photo.id);
                     this.loading = false;
                 }
             })
-        }catch (error) {
+        } catch (error) {
             runInAction(() => this.loading = false);
             console.log(error);
         }
     }
 
-  /*   updateProfile = async (profile: Partial<Profile>) => {
-        this.loading = true;
-        try {
-            await agent.Profiles.updateProfile(profile);
-            runInAction(() => {
-                if (profile.displayName && profile.displayName !== store.userStore.user?.displayName)
-                {
-                    store.userStore.setDisplayName(profile.displayName);
-                }
-                this.profile = {...this.profile, ...profile as Profile};
-                this.loading = false;
-            })
-        } catch (error) {
-            console.log(error);
-            runInAction(() => this.loading = false);
-
-        }
-
-    } */
+    /*   updateProfile = async (profile: Partial<Profile>) => {
+          this.loading = true;
+          try {
+              await agent.Profiles.updateProfile(profile);
+              runInAction(() => {
+                  if (profile.displayName && profile.displayName !== store.userStore.user?.displayName)
+                  {
+                      store.userStore.setDisplayName(profile.displayName);
+                  }
+                  this.profile = {...this.profile, ...profile as Profile};
+                  this.loading = false;
+              })
+          } catch (error) {
+              console.log(error);
+              runInAction(() => this.loading = false);
+  
+          }
+  
+      } */
 
     updateFollowing = async (username: string, following: boolean) => {
         this.loading = true;
@@ -160,7 +162,7 @@ export default class ProfileStore {
         }
     }
 
-    loadFollowings = async  (predicate: string) => {
+    loadFollowings = async (predicate: string) => {
         this.loadingFollowings = true;
         try {
             const followings = await agent.Profiles.listFollowings(this.profile!.username, predicate);
@@ -171,6 +173,23 @@ export default class ProfileStore {
         } catch (error) {
             console.log(error);
             runInAction(() => this.loadingFollowings = false);
+        }
+    }
+
+    loadUserActivities = async (username: string, predicate?: string) => {
+        this.loadingActivities = true;
+        try {
+            const activities = await agent.Profiles.listActivities(username,
+                predicate!);
+            runInAction(() => {
+                this.userActivities = activities;
+                this.loadingActivities = false;
+            })
+        } catch (error) {
+            console.log(error);
+            runInAction(() => {
+                this.loadingActivities = false;
+            })
         }
     }
 }
